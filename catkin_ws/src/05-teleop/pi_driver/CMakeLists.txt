@@ -16,6 +16,7 @@ add_message_files(
   FILES
   MotorSetSpeed.msg
   MotorSetPosition.msg
+  ButtonEvent.msg
   #ApriltagPose.msg
   #AprilTagDetection.msg
   #AprilTagDetectionArray.msg
