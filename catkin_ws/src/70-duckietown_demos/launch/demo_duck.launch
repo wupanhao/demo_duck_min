@@ -30,4 +30,5 @@
 		<arg name="/vehicle_avoidance/control" default="true"/>
 		<arg name="logic_gate_node" default="true"/> <!-- joystick_node need -->
 	</include>
+	<include file="$(find apriltag_ros)/launch/lepi_server.launch" /> 
 </launch>
