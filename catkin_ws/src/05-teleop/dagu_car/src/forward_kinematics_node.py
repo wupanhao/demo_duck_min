@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import rospy
+import rospkg
 from duckietown_msgs.msg import WheelsCmdStamped, Twist2DStamped
 from duckietown_msgs.srv import SetValueRequest, SetValueResponse, SetValue
 from std_srvs.srv import EmptyRequest, EmptyResponse, Empty
@@ -7,8 +8,9 @@ from numpy import *
 import yaml
 import time
 import os.path
-from duckietown_utils import get_duckiefleet_root
-
+#from duckietown_utils import get_duckiefleet_root
+def get_duckiefleet_root():
+    return rospkg.RosPack().get_path('duckietown') +  '/duckiefleet'
 
 # Forward Kinematics Node
 # Authors: Robert Katzschmann
