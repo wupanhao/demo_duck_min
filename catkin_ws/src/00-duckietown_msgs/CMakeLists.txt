@@ -87,6 +87,7 @@ add_service_files(
   SetValue.srv
   SetVariable.srv
   GetVariable.srv
+  GetLanePose.srv
   # Service2.srv
 )
 

@@ -167,8 +167,6 @@ class GroundProjection():
         print ob
         yaml_write_to_file(ob,filename)
 
-
-
     def load_board_info(self, filename=''):
         '''Load calibration checkerboard info'''
         if not os.path.isfile(filename):
