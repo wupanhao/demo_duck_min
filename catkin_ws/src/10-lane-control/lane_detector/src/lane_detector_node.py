@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from anti_instagram.AntiInstagram_rebuild import AntiInstagram
+# from anti_instagram.AntiInstagram_rebuild import AntiInstagram
 from cv_bridge import CvBridge, CvBridgeError
 from duckietown_msgs.msg import (AntiInstagramTransform, BoolStamped, FSMState, Segment,
     SegmentList, Vector2D)
@@ -20,6 +20,8 @@ from ground_projection.ground_projection_interface import GroundProjection, \
     get_ground_projection_geometry_for_robot
 from lane_filter_node import LaneFilterNode
 from ground_projection_node import GroundProjectionNode
+from image_transformer_node import ImageTransformerNode
+from cont_anti_instagram_node import ContAntiInstagramNode
 
 def bgr_from_jpg(data):
     """ Returns an OpenCV BGR image from a string """
@@ -30,9 +32,9 @@ def bgr_from_jpg(data):
         msg += 'This is usual a sign of data corruption.'
         raise ValueError(msg)
     return bgr
-class LineDetectorNode(object):
+class LaneDetectorNode(object):
     def __init__(self):
-        self.node_name = "LineDetectorNode"
+        self.node_name = "LaneDetectorNode"
         self.robot_name = "ubiquityrobot"
         # Thread lock
         self.thread_lock = threading.Lock()
@@ -40,14 +42,14 @@ class LineDetectorNode(object):
         self.bridge = CvBridge()
 
         # turn it on when need continuous detection 
-        self.active = False
-
+        self.active = rospy.get_param('~lane_detector', True)
+        self.image_transform = rospy.get_param('~image_transformer', True)
         self.stats = Stats()
         # Only be verbose every 10 cycles
         self.intermittent_interval = 100
         self.intermittent_counter = 0
         # color correction
-        self.ai = AntiInstagram()
+        # self.ai = AntiInstagram()
         # these will be added if it becomes verbose
         self.pub_edge = None
         self.pub_colorSegment = None
@@ -62,15 +64,19 @@ class LineDetectorNode(object):
         self.image_msg = None
 
         self.pub_lineseglist_ = rospy.Publisher("~lineseglist_out", SegmentList, queue_size=1)
-    	self.gp = GroundProjectionNode()
+        self.gp = GroundProjectionNode()
         self.lane_filter = LaneFilterNode()
+        self.cont_anti_instagram_node = ContAntiInstagramNode()
+        self.image_transformer_node = ImageTransformerNode()
         # Publishers
         self.pub_lines = rospy.Publisher("~segment_list", SegmentList, queue_size=1)
         self.pub_image = rospy.Publisher("~image_with_lines", Image, queue_size=1)
         # Subscribers /ubiquityrobot/camera_node/image_raw/compressed
-        self.sub_image = rospy.Subscriber("/ubiquityrobot/camera_node/image_raw/compressed", CompressedImage, self.cbImage, queue_size=1)
-        # self.sub_image = rospy.Subscriber("~corrected_image/compressed", CompressedImage, self.cbImage, queue_size=1)
-        self.sub_transform = rospy.Subscriber("~transform", AntiInstagramTransform, self.cbTransform, queue_size=1)
+        if self.image_transform:
+            self.sub_image = rospy.Subscriber("~corrected_image/compressed", CompressedImage, self.cbImage, queue_size=1)
+        else:
+            self.sub_image = rospy.Subscriber("/ubiquityrobot/camera_node/image_raw/compressed", CompressedImage, self.cbImage, queue_size=1)
+        # self.sub_transform = rospy.Subscriber("~transform", AntiInstagramTransform, self.cbTransform, queue_size=1)
         self.sub_switch = rospy.Subscriber("~switch", BoolStamped, self.cbSwitch, queue_size=1)
         self.sub_fsm = rospy.Subscriber("~fsm_mode", FSMState, self.cbFSM, queue_size=1)
 
@@ -147,6 +153,9 @@ class LineDetectorNode(object):
             self.thread_lock.release()
    
     def processImage_(self, image_msg):
+    	if not self.image_transform:
+            image_msg = self.image_transformer_node.cbNewImage(image_msg)
+            pass
         self.stats.processed()
         if self.intermittent_log_now():
             self.intermittent_log(self.stats.info())
@@ -171,7 +180,7 @@ class LineDetectorNode(object):
                                    interpolation=cv2.INTER_NEAREST)
         image_cv = image_cv[self.top_cutoff:,:,:]
         tk.completed('resized')
-        # milansc: color correction is now done within the image_tranformer_node (antiInstagram pkg)
+        # milansc: color correction is now done within the image_transformer_node (antiInstagram pkg)
         """
         # apply color correction: AntiInstagram
         image_cv_corr = self.ai.applyTransform(image_cv)
@@ -249,10 +258,10 @@ class LineDetectorNode(object):
             segmentMsgList.append(segment)
         return segmentMsgList
     def srvGetLanePose(self,msg):
-    	if self.image_msg == None:
-    		return GetLanePoseResponse()
-    	lane_pose = self.processImage_(self.image_msg)
-    	return GetLanePoseResponse(lane_pose)
+        if self.image_msg == None:
+            return GetLanePoseResponse()
+        lane_pose = self.processImage_(self.image_msg)
+        return GetLanePoseResponse(lane_pose)
 class Stats():
     def __init__(self):
         self.nresets = 0
@@ -265,13 +274,13 @@ class Stats():
         self.nprocessed = 0
     def received(self):
         if self.nreceived == 0 and self.nresets == 1:
-            rospy.loginfo('line_detector_node received first image.')
+            rospy.loginfo('lane_detector_node received first image.')
         self.nreceived += 1
     def skipped(self):
         self.nskipped += 1
     def processed(self):
         if self.nprocessed == 0 and self.nresets == 1:
-            rospy.loginfo('line_detector_node processing first image.')
+            rospy.loginfo('lane_detector_node processing first image.')
         self.nprocessed += 1
     def info(self):
         delta = time.time() - self.t0
@@ -290,8 +299,8 @@ class Stats():
 
 
 if __name__ == '__main__':
-    rospy.init_node('line_detector',anonymous=False)
-    line_detector_node = LineDetectorNode()
+    rospy.init_node('lane_detector_node',anonymous=False)
+    line_detector_node = LaneDetectorNode()
     rospy.on_shutdown(line_detector_node.onShutdown)
     rospy.spin()
 
