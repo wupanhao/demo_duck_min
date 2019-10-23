@@ -72,16 +72,16 @@ class LaneDetectorNode(object):
         self.pub_lines = rospy.Publisher("~segment_list", SegmentList, queue_size=1)
         self.pub_image = rospy.Publisher("~image_with_lines", Image, queue_size=1)
         # Subscribers /ubiquityrobot/camera_node/image_raw/compressed
-        if self.image_transform:
-            self.sub_image = rospy.Subscriber("~corrected_image/compressed", CompressedImage, self.cbImage, queue_size=1)
-        else:
-            self.sub_image = rospy.Subscriber("/ubiquityrobot/camera_node/image_raw/compressed", CompressedImage, self.cbImage, queue_size=1)
+
         # self.sub_transform = rospy.Subscriber("~transform", AntiInstagramTransform, self.cbTransform, queue_size=1)
         self.sub_switch = rospy.Subscriber("~switch", BoolStamped, self.cbSwitch, queue_size=1)
         self.sub_fsm = rospy.Subscriber("~fsm_mode", FSMState, self.cbFSM, queue_size=1)
 
         self.srv_get_lane_pose = rospy.Service('~get_lane_pose', GetLanePose, self.srvGetLanePose)
-
+        if self.image_transform:
+            self.sub_image = rospy.Subscriber("~corrected_image/compressed", CompressedImage, self.cbImage, queue_size=1)
+        else:
+            self.sub_image = rospy.Subscriber("/ubiquityrobot/camera_node/image_raw/compressed", CompressedImage, self.cbImage, queue_size=1)
         rospy.loginfo("[%s] Initialized (verbose = %s)." %(self.node_name, self.verbose))
         rospy.Timer(rospy.Duration.from_sec(2.0), self.updateParams)
     def cbFSM(self, msg):
@@ -153,9 +153,8 @@ class LaneDetectorNode(object):
             self.thread_lock.release()
    
     def processImage_(self, image_msg):
-    	if not self.image_transform:
+        if not self.image_transform:
             image_msg = self.image_transformer_node.cbNewImage(image_msg)
-            pass
         self.stats.processed()
         if self.intermittent_log_now():
             self.intermittent_log(self.stats.info())
@@ -295,8 +294,6 @@ class Stats():
               self.nprocessed, fps(self.nprocessed),
               self.nskipped, fps(self.nskipped), skipped_perc))
         return m
-
-
 
 if __name__ == '__main__':
     rospy.init_node('lane_detector_node',anonymous=False)

@@ -1,37 +1,31 @@
 #!/bin/bash
 set -e
 
-if [[ `id -u` -eq 0 ]] ; then
-    echo "Do not run this with sudo (do not run random things with sudo!)." ;
-    exit 1 ;
-fi
-
 set -x
 
-
-sudo apt install -y \
-	python-frozendict \
-	libxslt-dev \
-	libxml2-dev \
-	python-lxml \
-	python-bs4 \
-	python-tables \
-    python-sklearn \
+apt update && apt install -y \
+    libxslt-dev \
+    libxml2-dev \
     apt-file \
     iftop \
     atop \
     ntpdate \
+    libatlas-base-dev \
+    ipython \
+    python-dev \
+    python-lxml \
+    python-bs4 \
+    python-tables \
+    python-sklearn \
     python-termcolor \
     python-sklearn \
-    libatlas-base-dev \
-    python-dev \
-    ipython \
     python-smbus \
     libturbojpeg \
+    python-frozendict \
     python-cffi \
     python-skimage
 
-sudo apt remove -y \
+apt remove -y \
 	python-ruamel.yaml \
 	python-ruamel.ordereddict
 
