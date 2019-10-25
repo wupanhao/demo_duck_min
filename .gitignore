@@ -36,3 +36,4 @@ roster.html
 what_the_duck-*
 catkin_ws/.catkin_tools/
 catkin_ws/logs/
+*.whl

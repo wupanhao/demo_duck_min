@@ -47,7 +47,7 @@
 
         </node>
         <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch" />
-        <include file="$(find web_video_server)/launch/web_video.launch" />
+        <include file="$(find pi_cam)/launch/web_video.launch" />
         <!-- <include file="$(find pi_cam)/launch/usb_camera_node.launch" /> -->
 
     </group>
