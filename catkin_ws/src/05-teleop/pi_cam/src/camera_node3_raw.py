@@ -27,7 +27,7 @@ class CameraNode(object):
 
 		self.is_shutdown = False
 		self.DIM = (640, 480)
-		self.rate = 15
+		self.rate = 20
 		self.bridge = CvBridge()
 		self.frame_id = rospy.get_namespace().strip('/') + "/camera_optical_frame"
 		# initialize the camera and grab a reference to the raw camera capture
@@ -170,6 +170,6 @@ if __name__ == '__main__':
 	rospy.init_node('camera_node', anonymous=False)
 	camera_node = CameraNode()
 	rospy.on_shutdown(camera_node.onShutdown)
-	#thread.start_new_thread(camera_node.startCaptureRawCV, ())
-	thread.start_new_thread(camera_node.startCaptureCompressed, ())
+	thread.start_new_thread(camera_node.startCaptureRawCV, ())
+	#thread.start_new_thread(camera_node.startCaptureCompressed, ())
 	rospy.spin()

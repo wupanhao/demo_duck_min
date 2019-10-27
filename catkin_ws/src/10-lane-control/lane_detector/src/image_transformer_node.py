@@ -109,10 +109,10 @@ class ImageTransformerNode():
         if hasattr(image_msg,'format'): # CompressedImage
             try:
                 cv_image = bgr_from_jpg(image_msg.data)
+                self.pub_raw.publish(self.bridge.cv2_to_imgmsg(cv_image, "bgr8"))
             except ValueError as e:
                 rospy.loginfo('Anti_instagram cannot decode image: %s' % e)
                 return
-            self.pub_raw.publish(self.bridge.cv2_to_imgmsg(cv_image, "bgr8"))
         else: # Image
             cv_image = self.bridge.imgmsg_to_cv2(image_msg, desired_encoding="bgr8")
         #cv_image = cv2.imread(cv_image)

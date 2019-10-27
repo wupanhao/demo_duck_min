@@ -17,7 +17,7 @@
         <param name="camera_frame" type="str" value="$(arg camera_frame)" />
         <param name="publish_tag_detections_image" type="bool" value="true" />      <!-- default: false -->
       </node>
-      <node pkg="pi_cam" type="camera_node3.py" output="screen" name="camera_node" />
+      <node pkg="pi_cam" type="camera_node3_raw.py" output="screen" name="camera_node" />
       <node pkg="pi_driver" type="pi_driver_node.py" output="screen" name="pi_driver_node" />
   </group>
 

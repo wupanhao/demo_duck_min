@@ -1,0 +1,12 @@
+<launch>
+	<arg name="veh" default="ubiquityrobot"/>
+	<group ns="$(arg veh)">
+		<node pkg="pi_cam" type="camera_node3.py" output="screen" name="camera_node" />
+		<node pkg="pi_driver" type="pi_driver_node.py" output="screen" name="pi_driver_node" />
+		<include file="$(find lane_detector)/launch/lane_detector_node.launch" >
+			<arg name="lane_detector" value="false" />
+		</include>
+	</group>
+	<include file="$(find pi_cam)/launch/web_video.launch" />
+	<include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch" />
+</launch>

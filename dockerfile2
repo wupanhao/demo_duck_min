@@ -1,0 +1,15 @@
+from wupanhao/duckie_base:v0.3
+
+RUN apt install -y ros-kinetic-rosbridge-server ros-kinetic-web-video-server ros-kinetic-joy 
+
+RUN pip install RPi.GPIO spidev picamera reprep ruamel.yaml==0.15.34
+
+COPY ./caches/vc /opt/vc
+COPY ./caches/scipy-1.2.0-cp27-cp27mu-linux_armv7l.whl /tmp/
+COPY ./caches/00-vmcs.conf /etc/ld.so.conf.d/
+
+RUN pip install /tmp/scipy-1.2.0-cp27-cp27mu-linux_armv7l.whl
+
+COPY ./catkin_ws /demo_duck/catkin_ws
+
+CMD /bin/bash

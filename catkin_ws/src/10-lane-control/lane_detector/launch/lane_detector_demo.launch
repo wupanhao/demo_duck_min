@@ -47,10 +47,10 @@
             <param name="~cb_percentage" type="int" value="$(arg cb_percentage)"/>
 
         </node>
-        <!-- include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch" /-->
-        <!-- node pkg="pi_cam" type="camera_node3.py" output="screen" name="camera_node" /-->
-        <!-- include file="$(find pi_cam)/launch/web_video.launch" /--> 
+        <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch" />
+        <include file="$(find pi_cam)/launch/web_video.launch" /> 
         <!-- include file="$(find pi_cam)/launch/usb_camera_node.launch" /-->
+        <node pkg="pi_cam" type="camera_node3.py" output="screen" name="camera_node" />
 
     </group>
 
