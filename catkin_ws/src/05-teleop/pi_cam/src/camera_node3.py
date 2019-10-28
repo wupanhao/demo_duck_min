@@ -116,6 +116,7 @@ class CameraNode(object):
 			image_msg.data = self.stream.getvalue()
 			image_msg.header.stamp = rospy.Time.now()
 			image_msg.header.frame_id = self.frame_id
+			self.image_msg = image_msg
 			self.pub_compressed.publish(image_msg)			
 			# self.decodeAndPublishRaw(image_msg)
 			# self.r.sleep()
@@ -134,7 +135,17 @@ class CameraNode(object):
 		self.pub_raw.publish(img_msg)
 	def cbGetApriltagDetections(self,params):
 		# print(params)
-		if self.cv_image != None:
+		if self.image_msg == None:
+			return GetApriltagDetectionsResponse()
+		if hasattr(self.image_msg,'format'): # CompressedImage
+			try:
+				cv_image = bgr_from_jpg(self.image_msg.data)
+			except ValueError as e:
+				rospy.loginfo('Anti_instagram cannot decode image: %s' % e)
+				return
+		else: # Image
+			cv_image = self.bridge.imgmsg_to_cv2(image_msg, desired_encoding="bgr8")
+			self.pub_raw.publish(self.bridge.cv2_to_imgmsg(cv_image, "bgr8"))
 			rect_image = self.rector.rect(self.cv_image)
 			# self.pub_rect.publish(self.bridge.cv2_to_imgmsg(rect_image,"bgr8"))
 			tags = self.detector.detect(rect_image)
@@ -151,7 +162,7 @@ class CameraNode(object):
 				imgmsg = self.bridge.cv2_to_imgmsg(rect_image,"bgr8")
 				self.pub_detections.publish(imgmsg)			
 			return self.toApriltagDetections(tags)
-		return GetApriltagDetectionsResponse()
+		return 
 	def toApriltagDetections(self,tags):
 		msg = GetApriltagDetectionsResponse()
 		for tag in tags:

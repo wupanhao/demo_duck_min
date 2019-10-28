@@ -4,7 +4,6 @@
 	<arg name="ai_interval" default="5" doc="interval with which the linear trafo gets updated. color balance is performed every second."/>
 	<arg name="verbose" default="false"/>
 
-
 	<!-- start basic args -->
 	<include file="$(find duckietown_demos)/launch/master_apriltag_min.launch">
 		<arg name="veh" value="$(arg veh)"/>

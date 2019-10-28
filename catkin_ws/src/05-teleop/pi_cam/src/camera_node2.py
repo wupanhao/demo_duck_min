@@ -1,3 +1,5 @@
+#!/usr/bin/python
+#!coding:utf-8
 # import the necessary packages
 from picamera.array import PiRGBArray
 from picamera import PiCamera
@@ -6,12 +8,13 @@ import cv2
 from cv_bridge import CvBridge
 import rospkg
 import rospy
-from sensor_msgs.msg import Image,CompressedImage
+from sensor_msgs.msg import Image,CompressedImage,CameraInfo
 # from sensor_msgs.srv import SetCameraInfo, SetCameraInfoResponse
 import io
 import numpy as np
 import thread
 from camera_utils import load_camera_info_2
+from image_rector import ImageRector
 
 class CameraNode(object):
 
@@ -21,58 +24,33 @@ class CameraNode(object):
 
 		self.is_shutdown = False
 		self.DIM = (640, 480)
-		self.rate = 3
+		self.rate = 15
 		self.bridge = CvBridge()
 		self.frame_id = rospy.get_namespace().strip('/') + "/camera_optical_frame"
 		# initialize the camera and grab a reference to the raw camera capture
 		self.camera = PiCamera()
 		self.camera.resolution = self.DIM		
 		self.camera.framerate = self.rate
+		self.camera.rotation = 180
+		self.cv_image = None
 		# allow the camera to warmup
 		time.sleep(0.1)
-		self.r = rospy.Rate(self.rate)
+		self.rector = ImageRector()
+		self.visualization = True
 
+		self.tag_detect_rate = 4
+
+		self.cali_file = rospkg.RosPack().get_path('pi_cam') + "/camera_info/calibrations/default.yaml"
+		self.camera_info_msg = load_camera_info_2(self.cali_file)
+		self.image_msg = Image()
 		self.rawCapture = PiRGBArray(self.camera, size=self.DIM)
 		self.pub_raw = rospy.Publisher("~image_raw", Image, queue_size=1)
+		self.pub_camera_info = rospy.Publisher("~camera_info", CameraInfo, queue_size=1)
 
 		self.stream = io.BytesIO()
-		self.pub_compressed = rospy.Publisher("~image/compressed", CompressedImage, queue_size=1)
+		self.pub_compressed = rospy.Publisher("~image_raw/compressed", CompressedImage, queue_size=1)
 
-		self.pub_rect = rospy.Publisher("~image_rect", Image, queue_size=1)
-
-		self.cali_file = '../camera_info/calibrations/default.yaml'
-		self.camera_info_msg = load_camera_info_2(self.cali_file)
-		rospy.loginfo("[%s] CameraInfo: %s" % (self.node_name, self.camera_info_msg))
-		K = np.array(self.camera_info_msg.K).reshape((3,3))
-		# D = np.array(self.camera_info_msg.D[:4])
-		D = np.array([0.,0.,0.,0.])
-		# P = np.array(self.camera_info_msg.P).reshape((3,4))
-		DIM = (self.camera_info_msg.width,self.camera_info_msg.height)
-		self.mapx, self.mapy = cv2.fisheye.initUndistortRectifyMap(K, D, np.eye(3), K, DIM, cv2.CV_16SC2)
-
-		# frame = next( self.camera.capture_continuous(self.stream, format="jpeg", use_video_port=True) )
-		# print(frame)
-
-	def startCaptureRawCV(self):
-		while not self.is_shutdown and not rospy.is_shutdown():
-			frame = next( self.camera.capture_continuous(self.rawCapture, format="bgr", use_video_port=True) )
-			cv_image = frame.array
-
-			image_msg = self.bridge.cv2_to_imgmsg(cv_image, "bgr8")
-			image_msg.header.stamp = rospy.Time.now()
-			image_msg.header.frame_id = self.frame_id
-			self.pub_raw.publish(image_msg)			
-
-			# '''
-			rect_image = cv2.remap(cv_image,self.mapx, self.mapy,cv2.INTER_LINEAR)  
-			rect_image_msg = self.bridge.cv2_to_imgmsg(rect_image, "bgr8")
-			rect_image_msg.header = image_msg.header
-			self.pub_rect.publish(rect_image_msg)			
-			# '''
-
-			# self.r.sleep()
-			self.rawCapture.truncate(0)
-		self.camera.close()
+		self.pub_camera_info_rect = rospy.Publisher("~rect/camera_info", CameraInfo, queue_size=1)
 
 	def startCaptureCompressed(self):
 		while not self.is_shutdown and not rospy.is_shutdown():
@@ -89,9 +67,9 @@ class CameraNode(object):
 			image_msg.data = self.stream.getvalue()
 			image_msg.header.stamp = rospy.Time.now()
 			image_msg.header.frame_id = self.frame_id
+			self.image_msg = image_msg
 			self.pub_compressed.publish(image_msg)			
-			# self.decodeAndPublishRaw(image_msg)
-			# self.r.sleep()
+			self.decodeAndPublishRaw(image_msg)
 			self.stream.seek(0)
 			self.stream.truncate()
 	def decodeAndPublishRaw(self,image_msg):
@@ -103,7 +81,7 @@ class CameraNode(object):
 		# time_2 = time.time()
 		img_msg.header.stamp = image_msg.header.stamp
 		img_msg.header.frame_id = image_msg.header.frame_id
-		self.pub_raw.publish(img_msg) 
+		self.pub_raw.publish(img_msg)
 
 	def onShutdown(self):
 		rospy.loginfo("[%s] Closing camera." % (self.node_name))
@@ -114,6 +92,6 @@ if __name__ == '__main__':
 	rospy.init_node('camera_node', anonymous=False)
 	camera_node = CameraNode()
 	rospy.on_shutdown(camera_node.onShutdown)
-	thread.start_new_thread(camera_node.startCaptureRawCV, ())
-	# thread.start_new_thread(camera_node.startCaptureCompressed, ())
+	#thread.start_new_thread(camera_node.startCaptureRawCV, ())
+	thread.start_new_thread(camera_node.startCaptureCompressed, ())
 	rospy.spin()

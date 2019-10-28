@@ -8,8 +8,8 @@ COPY ./caches/vc /opt/vc
 COPY ./caches/scipy-1.2.0-cp27-cp27mu-linux_armv7l.whl /tmp/
 COPY ./caches/00-vmcs.conf /etc/ld.so.conf.d/
 
-RUN pip install /tmp/scipy-1.2.0-cp27-cp27mu-linux_armv7l.whl
+RUN pip install /tmp/scipy-1.2.0-cp27-cp27mu-linux_armv7l.whl && ldconfig
 
-COPY ./catkin_ws /demo_duck/catkin_ws
+COPY ./ /demo_duck/
 
 CMD /bin/bash
