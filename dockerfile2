@@ -11,5 +11,5 @@ COPY ./caches/00-vmcs.conf /etc/ld.so.conf.d/
 RUN pip install /tmp/scipy-1.2.0-cp27-cp27mu-linux_armv7l.whl && ldconfig
 
 COPY ./ /demo_duck/
-
+COPY ./docker/publishers.py /opt/ros/kinetic/lib/python2.7/dist-packages/rosbridge_library/internal/publishers.py
 CMD /bin/bash
