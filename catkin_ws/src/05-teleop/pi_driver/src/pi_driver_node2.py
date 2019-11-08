@@ -1,5 +1,6 @@
-from pi_driver import Lepi
-from pi_driver.msg import MotorSetSpeed,MotorSetPosition
+#!/usr/bin/python
+from pi_driver import Lepi,I2cDriver,ButtonMap
+from pi_driver.msg import MotorSetSpeed,MotorSetPosition,ButtonEvent
 from pi_driver.srv import MotorGetPosition,MotorGetPositionResponse
 
 import rospkg
@@ -15,7 +16,8 @@ class PiDriverNode:
 		self.sub_motor_set_speed =rospy.Subscriber("~motor_set_speed", MotorSetSpeed , self.cbMotorSetSpeed, queue_size=1)
 		self.sub_motor_set_position = rospy.Subscriber('~motor_set_position', MotorSetPosition, self.cbMotorSetPosition)
 		self.srv_motor_get_position = rospy.Service('~motor_get_position', MotorGetPosition, self.cbMotorGetPosition)
-
+		self.pub_button_event =rospy.Publisher("~button_event", ButtonEvent, queue_size=1)
+		self.i2c_driver = I2cDriver(self.pubButton)
 		rospy.loginfo("[%s] Initialized......" % (self.node_name))
 
 	def cbMotorEnable(self,msg):
@@ -34,7 +36,16 @@ class PiDriverNode:
 		print(msg)
 		position = Lepi.motor_get_current_position(msg.port)
 		return MotorGetPositionResponse(position)
-
+	def pubButton(self,btn):
+		if ButtonMap.has_key(btn):
+			e = ButtonEvent()
+			e.value = ButtonMap[btn]
+			if 0x81 <= btn and btn <=0x89:
+				e.type = 1
+			elif 0x01 <= btn and btn <=0x09:
+				e.type = 3
+			self.pub_button_event.publish(e)
+			return True
 if __name__ == '__main__':
 	rospy.init_node('pi_driver_node', anonymous=False)
 	node = PiDriverNode()

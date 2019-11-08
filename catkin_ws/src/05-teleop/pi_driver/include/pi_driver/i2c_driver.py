@@ -37,7 +37,7 @@ Button = {
 
 ButtonMap = {
     # button down
-    0x81:67, # Choose 'C' 67
+    0x81:72, # Home 'H' 72
     0x82:38, #  'ArrowUp': 38
     0x83:66, # Back 'B' 66
     0x84:37, # 'ArrowLeft': 37
@@ -45,10 +45,10 @@ ButtonMap = {
     0x86:39, # 'ArrowRight': 39
     0x87:82, # Run 'R' 82
     0x88:40, # 'ArrowDown': 40
-    0x89:27, # 'Esc' 27
+    0x89:69, # Exit 'E' 69
 
     # button up
-    0x01:67,
+    0x01:72,
     0x02:38,
     0x03:66,
     0x04:37,
@@ -56,7 +56,7 @@ ButtonMap = {
     0x06:39,
     0x07:82,
     0x08:40,
-    0x09:27,
+    0x09:69,
 
     0x99:'shutDownRequest',
     0x55:'PowerInfoChanged',

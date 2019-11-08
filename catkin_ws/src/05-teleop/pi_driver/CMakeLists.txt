@@ -26,6 +26,9 @@ add_message_files(
 add_service_files(
   FILES
   MotorGetPosition.srv
+  GetInt32.srv
+  SetInt32.srv
+  GetMotorsInfo.srv
   #GetApriltagDetections.srv
 )
 

@@ -4,11 +4,13 @@ import ctypes
 
 LP_SPI = spidev.SpiDev()
 LP_SPI.open(0, 1)
-LP_SPI.max_speed_hz = 5000
+LP_SPI.max_speed_hz = 50000
 LP_SPI.mode = 0b00
 LP_SPI.bits_per_word = 8
 
 NO_ADDR = 0
+
+ERROR_PORT = -101
 
 # R/W   A6 A5 A4 A3	A2 A1 A0
 class Command(object):
@@ -74,6 +76,9 @@ class Message(object):
 	def SetMortorEnable(port):
 		return Command.WRITE | port | Motor.ENABLE
 	@staticmethod
+	def GetMortorEnable(port):
+		return Command.READ | port | Motor.ENABLE
+	@staticmethod
 	def GetSensorType(port):
 		return Command.READ | port | Sensor.TYPE
 	@staticmethod
@@ -110,7 +115,7 @@ class Lepi(object):
 		"""
 		outArray = [MessageType, 0, 0, 0, 0, 0]
 		reply = self.spi.xfer2(outArray)
-		print(reply)
+		# print(reply)
 		cint32 = ctypes.c_int32( (reply[5] << 24) | (reply[4] << 16) | (reply[3] << 8) | reply[2] )
 		return cint32.value
 		# value = int((reply[5] << 24) | (reply[4] << 16) | (reply[3] << 8) | reply[2])
@@ -131,60 +136,70 @@ class Lepi(object):
 		outArray = [MessageType, (Value & 0xFF), ((Value >> 8) & 0xFF), ((Value >> 16) & 0xFF), ((Value >> 24) & 0xFF)]
 		# print(outArray[1:5])
 		self.spi.xfer2(outArray)
+		time.sleep(0.004)
+		return 1
 	@classmethod
-	def motor_enable(self,port):
+	def motor_set_enable(self,port,value):
 		if self.Motors.has_key(port):
-			self.spi_write_32(Message.SetMortorEnable(self.Motors[port]),1)
-		else:
-			print('wrong motor number')
+			return self.spi_write_32(Message.SetMortorEnable(self.Motors[port]),value)
+		return ERROR_PORT
 	@classmethod
-	def motor_disable(self,port):
+	def motor_get_enable(self,port):
 		if self.Motors.has_key(port):
-			self.spi_write_32(Message.SetMortorEnable(self.Motors[port]),0)
-		else:
-			print('wrong motor number')
+			return self.spi_read_32(Message.GetMortorEnable(self.Motors[port]))
+		return ERROR_PORT
 	@classmethod
 	def motor_set_speed(self,port,speed):
 		if self.Motors.has_key(port):
 			self.spi_write_32(Message.SetMortorSpeed(self.Motors[port]),speed)
-		else:
-			print('wrong motor number')
+		return ERROR_PORT
 	@classmethod
 	def motor_get_current_position(self,port):
 		if self.Motors.has_key(port):
 			return self.spi_read_32(Message.GetCurrentPosition(self.Motors[port]))
-		else:
-			print('wrong motor number')
+		return ERROR_PORT
 	@classmethod
 	def motor_set_target_position(self,port,position):
 		if self.Motors.has_key(port):
 			self.spi_write_32(Message.SetTargetPosition(self.Motors[port]),position)
-		else:
-			print('wrong motor number')
+		return ERROR_PORT
+	@classmethod
+	def motor_get_target_position(self,port):
+		if self.Motors.has_key(port):
+			self.spi_read_32(Message.GetTargetPosition(self.Motors[port]))
+		return ERROR_PORT
+
 	@classmethod
 	def motor_get_speed(self,port):
 		if self.Motors.has_key(port):
 			return self.spi_read_32(Message.GetMortorSpeed(self.Motors[port]))
-		else:
-			print('wrong motor number')
+		return ERROR_PORT
+	@classmethod
+	def motor_get_info(self,port):
+		if self.Motors.has_key(port):
+			return (port,self.motor_get_enable(port),self.motor_get_speed(port),self.motor_get_current_position(port))
+		return ERROR_PORT
+	@classmethod
+	def motor_set_info(self,port,enable,speed):
+		if self.Motors.has_key(port):
+			self.motor_set_enable(port,enable)
+			self.motor_set_speed(port,speed)
+		return ERROR_PORT
 	@classmethod
 	def sensor_get_type(self,port):
 		if self.Sensors.has_key(port):
 			return self.spi_read_32(Message.GetSensorType(self.Sensors[port]))
-		else:
-			print('wrong motor number')
+		return ERROR_PORT
 	@classmethod
 	def sensor_get_mode(self,port):
 		if self.Sensors.has_key(port):
 			return self.spi_read_32(Message.GetSensorMode(self.Sensors[port]))
-		else:
-			print('wrong motor number')
+		return ERROR_PORT
 	@classmethod
 	def sensor_get_value(self,port):
 		if self.Sensors.has_key(port):
 			return self.spi_read_32(Message.GetSensorValue(self.Sensors[port]))
-		else:
-			print('wrong motor number')
+		return ERROR_PORT
 # print(Command.WRITE | Lepi.MOTOR_3 | Motor.SPEED)
 
 def test_motor():
@@ -204,7 +219,7 @@ def test_motor():
 	# print(Lepi.motor_get_current_position(Lepi.MOTOR_2))
 	# time.sleep(0.02)
 
-	Lepi.motor_enable(Lepi.MOTOR_2)
+	Lepi.motor_set_enable(Lepi.MOTOR_2,1)
 	time.sleep(0.02)
 	Lepi.motor_set_speed(Lepi.MOTOR_2,200)
 	time.sleep(0.02)	
@@ -213,18 +228,18 @@ def test_motor():
 	Lepi.motor_set_speed(Lepi.MOTOR_2,20000)
 	time.sleep(0.02)
 	print(Lepi.motor_get_speed(Lepi.MOTOR_2))
-	Lepi.motor_disable(Lepi.MOTOR_2)
+	Lepi.motor_set_enable(Lepi.MOTOR_2,0)
 	time.sleep(0.02)	
 
-	Lepi.motor_enable(Lepi.MOTOR_1)
+	Lepi.motor_set_enable(Lepi.MOTOR_1,1)
 	time.sleep(0.02)
-	Lepi.motor_enable(Lepi.MOTOR_2)
+	Lepi.motor_set_enable(Lepi.MOTOR_2,1)
 	time.sleep(0.02)
-	Lepi.motor_enable(Lepi.MOTOR_3)
+	Lepi.motor_set_enable(Lepi.MOTOR_3,1)
 	time.sleep(0.02)
-	Lepi.motor_enable(Lepi.MOTOR_4)
+	Lepi.motor_set_enable(Lepi.MOTOR_4,1)
 	time.sleep(0.02)
-	Lepi.motor_enable(Lepi.MOTOR_5)
+	Lepi.motor_set_enable(Lepi.MOTOR_5,1)
 	time.sleep(0.02)
 	Lepi.motor_set_speed(Lepi.MOTOR_1,65000)
 	time.sleep(0.02)
@@ -236,15 +251,15 @@ def test_motor():
 	time.sleep(0.02)
 	Lepi.motor_set_speed(Lepi.MOTOR_5,65000)
 	time.sleep(2)
-	Lepi.motor_disable(Lepi.MOTOR_1)
+	Lepi.motor_set_enable(Lepi.MOTOR_1,1)
 	time.sleep(0.02)
-	Lepi.motor_disable(Lepi.MOTOR_2)
+	Lepi.motor_set_enable(Lepi.MOTOR_2,1)
 	time.sleep(0.02)
-	Lepi.motor_disable(Lepi.MOTOR_3)
+	Lepi.motor_set_enable(Lepi.MOTOR_3,1)
 	time.sleep(0.02)
-	Lepi.motor_disable(Lepi.MOTOR_4)
+	Lepi.motor_set_enable(Lepi.MOTOR_4,1)
 	time.sleep(0.02)
-	Lepi.motor_disable(Lepi.MOTOR_5)	
+	Lepi.motor_set_enable(Lepi.MOTOR_5,1)	
 
 def test_sensor():
 	print(Lepi.sensor_get_type(Lepi.SENSOR_2))
