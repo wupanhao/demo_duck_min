@@ -5,9 +5,10 @@ import RPi.GPIO as GPIO
 
 ReadButtonState =0x82
 
-ReadGSensor  =0x83
+ReadAccSensor  =0x83
 ReadGyroSensor  =0x84
 ReadMagnetometer = 0x85
+ReadBatOcv = 0x8A
 
 Button = {
     0x81:'btn1down',
@@ -31,8 +32,7 @@ Button = {
     0x09:'btn9up',
 
     0x99:'shutDownRequest',
-    0x4A:'chargeIn',
-    0x40:'chargeOut',
+    0x55:'PowerInfoChanged'
 }
 
 ButtonMap = {
@@ -59,9 +59,26 @@ ButtonMap = {
     0x09:27,
 
     0x99:'shutDownRequest',
-    0x4A:'chargeIn',
-    0x40:'chargeOut',
+    0x55:'PowerInfoChanged',
 }
+
+PowerMap = {
+    0x1F:100,
+    0x0F:75,
+    0x07:50,
+    0x03:25,
+    0x01:0
+}
+
+
+#4.20V~3.90V满格
+#3.90V~3.80V三格
+#3.80V~3.72V两格
+#3.72V~3.65V一格
+#3.65以下，低电压告警。
+
+
+
 
 class I2cDriver:
     def __init__(self,btn_handler=None):
@@ -74,12 +91,6 @@ class I2cDriver:
         self.btn_handler = btn_handler
     def enable_sensor(self,sensor,speed):
         self.bus.write_byte_data(self.m031_addr,0x46,0x47)
-    def read_sensor_value(self,sensor):
-        return bus.read_i2c_block_data(self.m031_addr,sensor,6)
-    def read_power_value(self):
-        return bus.read_i2c_block_data(self.m031_addr,0x8A,2)
-    def read_power_state(self,key):
-        return bus.read_i2c_block_data(self.m031_addr,key,2)
     def int_handler(self,channel):
         btn=self.bus.read_byte_data(self.m031_addr,ReadButtonState)
         if self.btn_handler!=None:
@@ -88,13 +99,66 @@ class I2cDriver:
         print(btn)
         if Button.has_key(btn):
             print(Button[btn])
-
+    def readAccSensor(self):
+        data=self.bus.read_i2c_block_data(self.m031_addr,ReadAccSensor,6)
+        acc_x=data[1]<<8|data[0]
+        acc_y=data[3]<<8|data[2]
+        acc_z=data[5]<<8|data[4]
+        # print("Acc_X=: "+str(acc_x)+"    Acc_Y=: "+str(acc_y)+"   Acc_Z: "+str(acc_z))
+        return (acc_x,acc_y,acc_z)
+    def readGyroSensor(self):
+        data=self.bus.read_i2c_block_data(self.m031_addr,ReadGyroSensor,6)
+        gyro_x=data[1]<<8|data[0]
+        gyro_y=data[3]<<8|data[2]
+        gyro_z=data[5]<<8|data[4]
+        # print("Gyro_X=: "+str(gyro_x)+"    Gyro_Y=: "+str(gyro_y)+"   Gyro_Z: "+str(gyro_z))
+        return (gyro_x,gyro_y,gyro_z)
+    def readMagnSensor(self):
+        data=self.bus.read_i2c_block_data(self.m031_addr,ReadMagnetometer,6)
+        magn_x=data[1]<<8|data[0]
+        magn_y=data[3]<<8|data[2]
+        magn_z=data[5]<<8|data[4]
+        # print("Magn_X=: "+str(magn_x)+"    Magn_Y=: "+str(magn_y)+"   Magn_Z: "+str(magn_z))
+        return (magn_x,magn_y,magn_z)
+    def readBatOcv(self):
+        power=self.bus.read_i2c_block_data(self.m031_addr,ReadBatOcv,4)
+        #print(power[0])
+        n_power=0
+        if PowerMap.has_key(power[0]):
+            n_power = PowerMap[power[0]]
+        # print("剩余电量: "+str(n_power))
+        charging = power[1]&0xF0
+        bat_power_ocv=(power[3]<<8|power[2])*0.26855/1000+2.6
+        est_power = (bat_power_ocv-3.625)*200
+        if est_power > 100:
+            est_power = 100
+        elif est_power < 0:
+            est_power = 0
+        # print("电池开路电压=:"+str(bat_power_ocv)+"v")
+        return (charging,bat_power_ocv,n_power,est_power)
+    def readVout(self):
+        vout12A=self.bus.read_i2c_block_data(self.m031_addr,0x8B,4)
+        vout1A=(vout12A[1]<<8|vout12A[0])*0.6394
+        vout2A=(vout12A[3]<<8|vout12A[2])*0.6394
+        print("vout1A:"+str(vout1A)+"mA     vout2A:"+str(vout2A)+"mA")
+    def readBat(self):
+        vout12A=self.bus.read_i2c_block_data(self.m031_addr,0x8B,4)
+        BAT=self.bus.read_i2c_block_data(self.m031_addr,0x8C,4)
+        BAT_V=(vout12A[1]<<8|vout12A[0])*0.26855/1000+2.6
+        BAT_A=(vout12A[3]<<8|vout12A[2])*1.27883/1000
+        print("电池电压:"+str(BAT_V)+"V     电池电流:"+str(BAT_A)+"A")
 if __name__ == '__main__':
     def test_print(data):
         print('read value %d ' % (data))
         return False
     driver = I2cDriver(test_print)
     while True:
+        print('acc:',driver.readAccSensor())
+        print('gyro:',driver.readGyroSensor())
+        print('magn:',driver.readMagnSensor())
+        print('power:',driver.readBatOcv())
+        driver.readVout()
+        driver.readBat()
         time.sleep(1)
 
 # while(1):
