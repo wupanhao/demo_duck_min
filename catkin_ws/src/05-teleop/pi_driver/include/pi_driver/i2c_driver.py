@@ -58,8 +58,8 @@ ButtonMap = {
     0x08:40,
     0x09:69,
 
-    0x99:'shutDownRequest',
-    0x55:'PowerInfoChanged',
+    0x99:0x99,
+    0x55:0x98,
 }
 
 PowerMap = {
