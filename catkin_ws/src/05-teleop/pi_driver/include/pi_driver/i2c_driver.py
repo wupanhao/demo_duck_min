@@ -83,7 +83,7 @@ PowerMap = {
 class I2cDriver:
     def __init__(self,btn_handler=None):
         self.m031_addr = 0x15
-        self.int_pin = 22
+        self.int_pin = 22 # GPIO25 40pin 第22号引脚
         self.bus =smbus.SMBus(1)
         GPIO.setmode(GPIO.BOARD)
         GPIO.setup(self.int_pin,GPIO.IN)

@@ -1,12 +1,17 @@
+#!coding:utf-8
 import spidev
 import time
 import ctypes
+import RPi.GPIO as GPIO
+import numpy as np
 
 LP_SPI = spidev.SpiDev()
 LP_SPI.open(0, 1)
 LP_SPI.max_speed_hz = 50000
 LP_SPI.mode = 0b00
 LP_SPI.bits_per_word = 8
+
+
 
 NO_ADDR = 0
 
@@ -50,6 +55,14 @@ class Sensor(object):
 	MODE = 1 # R/W do not support set work mode yet
 	VALUE = 2 # R
 
+class System(object):
+	SENSOR_STATUS = 0
+	SENSOR_1 = 0x01 << 16
+	SENSOR_2 = 0x01 << 17
+	SENSOR_3 = 0x01 << 18
+	SENSOR_4 = 0x01 << 19
+	SENSOR_5 = 0x01 << 20
+	Sensors = {1:SENSOR_1,2:SENSOR_2,3:SENSOR_3,4:SENSOR_4,5:SENSOR_5}
 class Message(object):
 	@staticmethod
 	def GetMotorState(port):
@@ -87,6 +100,10 @@ class Message(object):
 	@staticmethod
 	def GetSensorValue(port):
 		return Command.READ | port | Sensor.VALUE		
+	@staticmethod
+	def GetSensorStatus():
+		return Command.READ | System.SENSOR_STATUS
+
 class Lepi(object):
 	SYSTEM = 0x00 << 3
 	MOTOR_1 = 1
@@ -151,7 +168,7 @@ class Lepi(object):
 	@classmethod
 	def motor_set_speed(self,port,speed):
 		if self.Motors.has_key(port):
-			self.spi_write_32(Message.SetMortorSpeed(self.Motors[port]),speed)
+			self.spi_write_32(Message.SetMortorSpeed(self.Motors[port]),int(speed*655.35))
 		return ERROR_PORT
 	@classmethod
 	def motor_get_current_position(self,port):
@@ -172,7 +189,7 @@ class Lepi(object):
 	@classmethod
 	def motor_get_speed(self,port):
 		if self.Motors.has_key(port):
-			return self.spi_read_32(Message.GetMortorSpeed(self.Motors[port]))
+			return int(self.spi_read_32(Message.GetMortorSpeed(self.Motors[port]))/655.35)
 		return ERROR_PORT
 	@classmethod
 	def motor_get_info(self,port):
@@ -200,7 +217,47 @@ class Lepi(object):
 		if self.Sensors.has_key(port):
 			return self.spi_read_32(Message.GetSensorValue(self.Sensors[port]))
 		return ERROR_PORT
+	@classmethod
+	def system_get_sensor_status(self):
+		status = self.spi_read_32(Message.GetSensorStatus())
+		print(status)
+		return status
 # print(Command.WRITE | Lepi.MOTOR_3 | Motor.SPEED)
+
+class D51Driver:
+	def __init__(self,onSensorChange=None):
+		self.int_pin = 31 # GPIO06 40pin 第31号引脚
+		self.int_handler = self.defaultHandler
+		self.onSensorChange = onSensorChange
+		self.sensor_type = {0:'Sensor',29:'Infrared Sensor',30:'Ultrasonic Sensor'}
+		self.sensors = self.readSensorStatus()
+		GPIO.setmode(GPIO.BOARD)
+		GPIO.setup(self.int_pin,GPIO.IN)
+		GPIO.add_event_detect(self.int_pin,GPIO.RISING,callback=self.int_handler,bouncetime=20)
+ 
+	def readSensorStatus(self):
+		status = Lepi.system_get_sensor_status()
+		sensors = []
+		for k,v in System.Sensors.items():
+			sensors.append(int(status&v!=0))		
+		return np.array(sensors)
+
+	def defaultHandler(self,channel):
+		print('sensor status changed',channel)
+		sensors = self.readSensorStatus()
+		change = sensors - self.sensors 
+		self.sensors = sensors
+		print(change)
+		for i,status in enumerate(change):
+			sensor_type = Lepi.sensor_get_type(i+1)
+			if status == 1:
+				print(i+1,self.sensor_type[sensor_type],'connected')
+			elif status == -1:
+				print(i+1,self.sensor_type[sensor_type],'disconnected')
+			else:
+				continue
+			if self.onSensorChange!=None:
+				self.onSensorChange(i+1,sensor_type,status)
 
 def test_motor():
 	# import time
@@ -270,5 +327,8 @@ def test_sensor():
 		print(Lepi.sensor_get_value(Lepi.SENSOR_2))
 		time.sleep(0.5)	
 if __name__ == '__main__':
-	test_motor()
+	driver = D51Driver()
+	while True:
+		time.sleep(1)
+	# test_motor()
 	# test_sensor()

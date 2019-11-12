@@ -19,6 +19,7 @@ add_message_files(
   ButtonEvent.msg
   MotorInfo.msg
   Sensor3Axes.msg
+  SensorStatusChange.msg
   #ApriltagPose.msg
   #AprilTagDetection.msg
   #AprilTagDetectionArray.msg
