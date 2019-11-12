@@ -34,6 +34,7 @@ add_service_files(
   GetMotorsInfo.srv
   SensorGet3Axes.srv
   GetPowerState.srv
+  GetSensorInfo.srv
   #GetApriltagDetections.srv
 )
 

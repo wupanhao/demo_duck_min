@@ -3,7 +3,7 @@ from pi_driver import Lepi,I2cDriver,ButtonMap,D51Driver
 from pi_driver.msg import ButtonEvent,Sensor3Axes,MotorInfo,SensorStatusChange
 from pi_driver.srv import SetInt32,GetInt32,SetInt32Response,GetInt32Response,\
 		GetMotorsInfo,GetMotorsInfoResponse,SensorGet3Axes,SensorGet3AxesResponse,\
-		GetPowerState,GetPowerStateResponse
+		GetPowerState,GetPowerStateResponse,GetSensorInfo,GetSensorInfoResponse
 
 import rospkg
 import rospy
@@ -24,6 +24,7 @@ class PiDriverNode:
 		self.srv_motors_get_info = rospy.Service('~motors_get_info', GetMotorsInfo, self.srvMotorsGetInfo)
 		self.srv_sensor_get_type = rospy.Service('~sensor_get_type', GetInt32, self.srvSensorGetType)
 		self.srv_sensor_get_value = rospy.Service('~sensor_get_value', GetInt32, self.srvSensorGetValue)
+		self.srv_sensor_get_info = rospy.Service('~sensor_get_info', GetSensorInfo, self.srvSensorGetInfo)
 		self.srv_sensor_get_3axes = rospy.Service('~sensor_get_3axes', SensorGet3Axes, self.srvSensorGet3Axes)
 		self.srv_get_power_state = rospy.Service('~get_power_state', GetPowerState, self.srvGetPowerState)
 		self.i2c_driver = I2cDriver(self.pubButton)
@@ -82,6 +83,10 @@ class PiDriverNode:
 	def srvSensorGetValue(self,msg):
 		data = Lepi.sensor_get_value(msg.port)
 		return GetInt32Response(data)
+	def srvSensorGetInfo(self,msg):
+		sensor_id = Lepi.sensor_get_type(msg.port)
+		value = Lepi.sensor_get_value(msg.port)
+		return GetSensorInfoResponse(msg.port,sensor_id,value)
 	def srvSensorGet3Axes(self,msg):
 		print(msg)
 		if msg.id == 1:
