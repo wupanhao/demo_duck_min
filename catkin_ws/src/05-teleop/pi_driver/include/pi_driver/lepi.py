@@ -222,6 +222,13 @@ class Lepi(object):
 		status = self.spi_read_32(Message.GetSensorStatus())
 		print(status)
 		return status
+	@classmethod
+	def servo_set_angle(self,port,angle):
+		# [0,180] => [-1550,-7450] 
+		if self.Motors.has_key(port) and abs(angle)<=90:
+			self.spi_write_32(Message.SetMortorSpeed(self.Motors[port]),int(-4500+angle*32))
+		return ERROR_PORT
+
 # print(Command.WRITE | Lepi.MOTOR_3 | Motor.SPEED)
 
 class D51Driver:
@@ -263,7 +270,7 @@ def test_motor():
 	# import time
 	# Lepi.motor_set_speed(Lepi.MOTOR_2,0)
 	# time.sleep(0.02)
-	# Lepi.motor_enable(Lepi.MOTOR_2)
+	# Lepi.motor_set_enable(Lepi.MOTOR_2)
 	# time.sleep(0.02)
 	print(Lepi.motor_get_current_position(Lepi.MOTOR_2))
 	time.sleep(0.02)
@@ -326,9 +333,25 @@ def test_sensor():
 	while True:
 		print(Lepi.sensor_get_value(Lepi.SENSOR_2))
 		time.sleep(0.5)	
+def test_servo():
+	Lepi.motor_set_enable(Lepi.MOTOR_5,1)
+	Lepi.servo_set_angle(Lepi.MOTOR_5,0)
+	time.sleep(2)	
+	# Lepi.motor_set_enable(Lepi.MOTOR_5,0)
+	# return	
+	Lepi.servo_set_angle(Lepi.MOTOR_5,-90)
+	time.sleep(2)
+	Lepi.servo_set_angle(Lepi.MOTOR_5,0)
+	time.sleep(2)
+	Lepi.servo_set_angle(Lepi.MOTOR_5,90)
+	time.sleep(2)
+	Lepi.servo_set_angle(Lepi.MOTOR_5,0)
+	time.sleep(2)	
+	Lepi.motor_set_enable(Lepi.MOTOR_5,0)
 if __name__ == '__main__':
-	driver = D51Driver()
-	while True:
-		time.sleep(1)
+	test_servo()
+	# driver = D51Driver()
+	# while True:
+	# 	time.sleep(1)
 	# test_motor()
 	# test_sensor()
