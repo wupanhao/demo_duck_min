@@ -1,4 +1,5 @@
 # Note: this container will have the name wupanhao/duckie_base
+# docker build . -f dockerfile -t wupanhao/duckie_base:v0.1
 FROM ros:kinetic
 
 ENV http_proxy http://192.168.50.162:1080

@@ -34,7 +34,7 @@ class CameraNode(object):
 		self.camera = PiCamera()
 		self.camera.resolution = self.DIM		
 		self.camera.framerate = self.rate
-		self.camera.rotation = 180
+		self.camera.rotation = 0
 		self.cv_image = None
 		# allow the camera to warmup
 		time.sleep(0.1)

@@ -35,6 +35,8 @@ add_service_files(
   SensorGet3Axes.srv
   GetPowerState.srv
   GetSensorInfo.srv
+  GetString.srv
+  SetString.srv
   #GetApriltagDetections.srv
 )
 

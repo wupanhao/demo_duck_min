@@ -11,8 +11,6 @@ LP_SPI.max_speed_hz = 50000
 LP_SPI.mode = 0b00
 LP_SPI.bits_per_word = 8
 
-
-
 NO_ADDR = 0
 
 ERROR_PORT = -101
