@@ -35,9 +35,13 @@ class PiDriverNode:
 			e = ButtonEvent()
 			e.value = ButtonMap[btn]
 			if 0x81 <= btn and btn <=0x89:
-				e.type = 1
+				e.type = 1 # down
 			elif 0x01 <= btn and btn <=0x09:
-				e.type = 3
+				e.type = 3 # up
+			elif 0x11 <= btn and btn <= 0x19:
+				e.type = 2 # short
+			elif 0x91 <= btn and btn <= 0x99:
+				e.type = 4 # long
 			self.pub_button_event.publish(e)
 			return True
 	def pubSensorChange(self,port,sensor_id,status):

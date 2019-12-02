@@ -31,6 +31,26 @@ Button = {
     0x08:'btn8up',
     0x09:'btn9up',
 
+    0x11:'btn1short',
+    0x12:'btn2short',
+    0x13:'btn3short',
+    0x14:'btn4short',
+    0x15:'btn5short',
+    0x16:'btn6short',
+    0x17:'btn7short',
+    0x18:'btn8short',
+    0x19:'btn9short',
+
+    0x91:'btn1long',
+    0x92:'btn2long',
+    0x93:'btn3long',
+    0x94:'btn4long',
+    0x95:'btn5long',
+    0x96:'btn6long',
+    0x97:'btn7long',
+    0x98:'btn8long',
+    # 0x99:'btn9up',
+
     0x99:'shutDownRequest',
     0x55:'PowerInfoChanged'
 }
@@ -57,6 +77,28 @@ ButtonMap = {
     0x07:82,
     0x08:40,
     0x09:69,
+
+    # short press
+    0x11:72, # Home 'H' 72
+    0x12:38, #  'ArrowUp': 38
+    0x13:66, # Back 'B' 66
+    0x14:37, # 'ArrowLeft': 37
+    0x15:13, # 'Enter': 13
+    0x16:39, # 'ArrowRight': 39
+    0x17:82, # Run 'R' 82
+    0x18:40, # 'ArrowDown': 40
+    0x19:69, # Exit 'E' 69
+
+    # long press
+    0x91:72,
+    0x92:38,
+    0x93:66,
+    0x94:37,
+    0x95:13,
+    0x96:39,
+    0x97:82,
+    0x98:40,
+    # 0x99:69,
 
     0x99:0x99,
     0x55:0x98,

@@ -23,6 +23,7 @@ add_message_files(
 add_service_files(
   FILES
   GetApriltagDetections.srv
+  GetPredictions.srv
 )
 
 generate_messages(

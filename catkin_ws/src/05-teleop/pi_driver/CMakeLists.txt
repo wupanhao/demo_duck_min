@@ -37,6 +37,7 @@ add_service_files(
   GetSensorInfo.srv
   GetString.srv
   SetString.srv
+  GetStrings.srv
   #GetApriltagDetections.srv
 )
 

@@ -68,10 +68,11 @@ class UsbCamera(object):
 				ret,frame = self.cap.read()
 				if ret == True:
 					self.last_image = frame
-					if self.callback is not None:
+					if (frame is not None) and (self.callback is not None) :
 						self.callback(frame)
 				else:
 					self.last_image = None
+					pass
 			except Exception as e:
 				# raise e
 				print('camera capture error',e)
@@ -79,10 +80,9 @@ class UsbCamera(object):
 			finally:
 				time.sleep(1.0/self.rate)
 		self.close_camera()
-	def save_a_frame(self,path,file_name):
+	def save_a_frame(self,full_path):
 		if self.last_image is not None:
 			try:
-				full_path = os.path.join(path,file_name)
 				cv2.imwrite(full_path,self.last_image)
 				print('saved image to '+full_path)
 				return 0
