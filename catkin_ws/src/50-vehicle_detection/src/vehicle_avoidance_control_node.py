@@ -79,7 +79,7 @@ class VehicleAvoidanceControlNode(object):
 		self.cameraMatrix = np.array(self.camera_info_msg.K).reshape((3,3))
 		self.camera_params = ( self.cameraMatrix[0,0], self.cameraMatrix[1,1], self.cameraMatrix[0,2], self.cameraMatrix[1,2] )		
 		self.visualization = True
-		self.speed_up_factor = 3.0
+		self.speed_up_factor = 1.5
 		self.sleep_time = rospy.Time.now()
 # 		self.v_gain = 1
 # 		self.vehicle_pose_msg_temp = VehiclePose()

@@ -21,7 +21,4 @@
       <node pkg="pi_driver" type="pi_driver_node.py" output="screen" name="pi_driver_node" />
   </group>
 
-  <include file="$(find pi_cam)/launch/web_video.launch" />
-  <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch" />
-
 </launch>
