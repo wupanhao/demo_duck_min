@@ -3,7 +3,7 @@ import rospy
 from duckietown_msgs.msg import WheelsCmdStamped, BoolStamped
 # from dagu_car.dagu_wheels_driver import DaguWheelsDriver
 import numpy as np
-from Car import CarDriver
+from Car import CarDriver2
 class WheelsDriverNode(object):
     def __init__(self):
         self.node_name = rospy.get_name()
@@ -18,7 +18,7 @@ class WheelsDriverNode(object):
 
         # Setup publishers
         # self.driver = DaguWheelsDriver()
-        self.driver = CarDriver()
+        self.driver = CarDriver2()
 
         #add publisher for wheels command wih execution time
         self.msg_wheels_cmd = WheelsCmdStamped()
