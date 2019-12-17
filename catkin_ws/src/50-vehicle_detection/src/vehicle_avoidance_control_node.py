@@ -21,7 +21,6 @@ from scipy.spatial.transform import Rotation as R
 from apriltags3 import Detector
 
 
-
 class VehicleAvoidanceControlNode(object):
 
 	def __init__(self):
@@ -51,6 +50,7 @@ class VehicleAvoidanceControlNode(object):
 		self.detection_prev=None
 
 		self.active = True
+		self.waited = False
 		self.bridge = CvBridge()
 		self.last_stamp = rospy.Time.now()
 		self.publish_freq = 2
@@ -79,7 +79,7 @@ class VehicleAvoidanceControlNode(object):
 		self.cameraMatrix = np.array(self.camera_info_msg.K).reshape((3,3))
 		self.camera_params = ( self.cameraMatrix[0,0], self.cameraMatrix[1,1], self.cameraMatrix[0,2], self.cameraMatrix[1,2] )		
 		self.visualization = True
-		self.speed_up_factor = 1.5
+		self.speed_up_factor = 1.2
 		self.sleep_time = rospy.Time.now()
 # 		self.v_gain = 1
 # 		self.vehicle_pose_msg_temp = VehiclePose()
@@ -226,7 +226,7 @@ class VehicleAvoidanceControlNode(object):
 
 	def cbCarCmd(self, car_cmd_msg):
 		if not self.active or (self.sleep_time > rospy.Time.now() ):
-			self.pubStop()
+			#self.pubStop()
 			return
 		car_cmd_msg_current = Twist2DStamped()
 		car_cmd_msg_current = car_cmd_msg
@@ -246,80 +246,22 @@ class VehicleAvoidanceControlNode(object):
 		self.car_cmd_pub.publish(car_cmd_msg_current)
 		#print(self.v_gain)
 
+# v : speed
+# omega : steer , left:-8.3,right:8.3
+	def publishCmd(self,v=0.0,omega=0.0):
+		cmd_msg = Twist2DStamped()
+		cmd_msg.header.stamp = rospy.Time.now()
+		cmd_msg.v = v
+		cmd_msg.omega = omega
+		print(v,omega)
+		self.car_cmd_pub.publish(cmd_msg)
 
-# 	def publishCmd(self,stamp):
-# 		cmd_msg = Twist2DStamped()
-#		cmd_msg.header.stamp = stamp
-# 		cmd_msg.v = 0.0
-# 		cmd_msg.omega = 0.0
-# 		self.car_cmd_pub.publish(cmd_msg)
+	def turn_for_100ms(self,v=0.0,omega=0.0,count = 10 ):
+		print('turn_for_100ms')
+		for i in range(count):
+			self.publishCmd(v,omega)
+			time.sleep(0.1)
 
-	def cbImg(self,msg):
-		now = rospy.Time.now()
-		time_pase = now - self.last_stamp
-		if time_pase < self.publish_duration:
-			return
-		else:
-			self.last_stamp = now
-			if self.sleep_time > now:
-				return
-		time_0 = time.time()
-		np_arr = np.fromstring(msg.data, np.uint8)
-		cv_image = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
-		time_1 = time.time()
-		rect_image = cv2.remap(cv_image,self.mapx, self.mapy,cv2.INTER_LINEAR) 
-		time_2 = time.time()
-		rect_imgmsg = self.bridge.cv2_to_imgmsg(rect_image,"bgr8")
-		self.pub_rect.publish(rect_imgmsg)
-		self.camera_info_msg.header = rect_imgmsg.header
-		self.pub_camera_info.publish(self.camera_info_msg)
-		# print('[image rect] decode:%f rect:%f ' % ( time_1- time_0, time_2 - time_1 ))
-		# return
-		image_gray = cv2.cvtColor(rect_image,cv2.COLOR_BGR2GRAY)
-		tags = self.detector.detect(image_gray, True, self.camera_params, 0.041) # tag size in meter
-		time_3 = time.time()
-		if self.visualization:
-			for tag in tags:
-				for idx in range(len(tag.corners)):
-					cv2.line(cv_image, tuple(tag.corners[idx-1, :].astype(int)), tuple(tag.corners[idx, :].astype(int)), (0, 255, 0))
-				cv2.putText(cv_image, str(tag.tag_id),
-							org=(tag.corners[0, 0].astype(int)+10,tag.corners[0, 1].astype(int)+10),
-							fontFace=cv2.FONT_HERSHEY_SIMPLEX,
-							fontScale=0.8,
-							color=(0, 0, 255))
-			imgmsg = self.bridge.cv2_to_imgmsg(cv_image,"bgr8")
-			self.pub_tag.publish(imgmsg)
-			self.camera_info_msg.header.stamp = msg.header.stamp
-		time_4 = time.time()
-		print('[apriltag detect] decode:%f rect:%f detect:%f publish:%f' % ( time_1- time_0, time_2 - time_1 , time_3- time_2, time_4 - time_3 ))
-		if len(tags) > 0:
-			tag = tags[0]
-			base = np.eye(3)
-			r = R.from_dcm(np.array(tag.pose_R))
-			offset = np.array(tag.pose_t)*100
-			euler = r.as_euler('xyz', degrees=True)
-			print('tag id %d wx:%f wy:%f wz:%f x:%f y:%f z:%f'% ( tag.tag_id , euler[0], euler[1],euler[2] ,offset[0],offset[1],offset[2] ) )
-
-			if tag.tag_id == 5 and not self.waited: # Wait 5 seconds
-				self.speed_up_factor = 2
-				self.sleep_time = rospy.Time.now()+rospy.Duration.from_sec(1.0*5)
-				self.active = True
-				self.waited = True
-			elif tag.tag_id == 4: # Faster speed
-				self.speed_up_factor = 2.5
-				self.active = True
-			elif tag.tag_id == 3: # Lower speed
-				self.speed_up_factor = 1.2
-				self.active = True
-			elif tag.tag_id == 2: # Normal speed , start
-				self.speed_up_factor = 1.7
-				self.active = True
-				self.waited = False				
-			elif tag.tag_id == 1: 
-				self.active = False
-				# self.speed_up_factor = 0
-		else:
-			print('no tag detected')
 	def cbRawImg(self,msg):
 		now = rospy.Time.now()
 		time_pase = now - self.last_stamp
@@ -372,15 +314,31 @@ class VehicleAvoidanceControlNode(object):
 				self.active = True
 				self.waited = True
 			elif tag.tag_id == 4: # Faster speed
-				self.speed_up_factor = 3.0
+				#self.speed_up_factor = 3.0
 				self.active = True
-			elif tag.tag_id == 3: # Lower speed
-				self.speed_up_factor = 1.2
+                        elif tag.tag_id == 3: # turn left
+                                #self.speed_up_factor = 1.2
+				if self.waited:
+					return
+                                self.active = False
+				self.waited = True
+                                self.turn_for_100ms(0.3,0.0,25)
+                                self.turn_for_100ms(0.3,2,25)
+                                self.turn_for_100ms(0.3,0.0,15)
+                                #self.turn_for_100ms(0.3,0.0,35)
 				self.active = True
-			elif tag.tag_id == 2: # Normal speed , start
-				self.speed_up_factor = 2
-				self.active = True
-				self.waited = False				
+				time.sleep(3)
+				self.active = False
+                                self.turn_for_100ms(0.3,-2.0,25)
+                                self.active = True
+                        elif tag.tag_id == 2: # stop
+                                #self.speed_up_factor = 1.7
+				if not self.waited:
+					return
+                                self.active = False
+                                self.waited = False 
+                                self.turn_for_100ms(0.4,0,20)
+                                self.turn_for_100ms(0,0,5)
 			elif tag.tag_id == 1: 
 				self.active = False
 				# self.speed_up_factor = 0
