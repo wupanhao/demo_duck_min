@@ -7,18 +7,18 @@
   <arg name="veh" default="ubiquityrobot" />
 
   <group ns="$(arg veh)">
-    <!-- Set parameters -->
-    <rosparam command="load" file="$(find apriltag_ros)/config/settings.yaml" ns="$(arg node_namespace)" />
-    <rosparam command="load" file="$(find apriltag_ros)/config/tags.yaml" ns="$(arg node_namespace)" />    
-      <node pkg="apriltag_ros" type="apriltag_ros_continuous_node" name="$(arg node_namespace)" clear_params="true" output="screen" launch-prefix="$(arg launch_prefix)" >
-        <!-- Remap topics from those used in code to those on the ROS network -->
-        <remap from="image_rect" to="$(arg camera_name)/$(arg image_topic)" />
-
-        <param name="camera_frame" type="str" value="$(arg camera_frame)" />
-        <param name="publish_tag_detections_image" type="bool" value="true" />      <!-- default: false -->
-      </node>
       <node pkg="pi_cam" type="camera_node3_raw.py" output="screen" name="camera_node" />
-      <node pkg="pi_driver" type="pi_driver_node.py" output="screen" name="pi_driver_node" />
+      <!-- node pkg="pi_driver" type="pi_driver_node.py" output="screen" name="pi_driver_node" /-->
   </group>
+  <node pkg="web_video_server" type="web_video_server" name="web_video_server_1" output="screen">
+    <param name="port" type="int" value="8080" />
+    <param name="address" type="string" value="0.0.0.0" />
+    <param name="server_threads" type="int" value="1" />
+    <param name="ros_threads" type="string" value="2" />
 
+    <param name="width" type="int" value="1280" />
+    <param name="height" type="int" value="1080" />
+    <param name="quality" type="int" value="90" />
+
+  </node>
 </launch>

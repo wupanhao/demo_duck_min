@@ -313,35 +313,19 @@ class VehicleAvoidanceControlNode(object):
 				self.sleep_time = rospy.Time.now()+rospy.Duration.from_sec(1.0*5)
 				self.active = True
 				self.waited = True
-			elif tag.tag_id == 4: # Faster speed
-				#self.speed_up_factor = 3.0
-				self.active = True
-                        elif tag.tag_id == 3: # turn left
-                                #self.speed_up_factor = 1.2
-				if self.waited:
-					return
-                                self.active = False
-				self.waited = True
-                                self.turn_for_100ms(0.3,0.0,25)
-                                self.turn_for_100ms(0.3,2,25)
-                                self.turn_for_100ms(0.3,0.0,15)
-                                #self.turn_for_100ms(0.3,0.0,35)
-				self.active = True
-				time.sleep(3)
-				self.active = False
-                                self.turn_for_100ms(0.3,-2.0,25)
+                        elif tag.tag_id == 4: # Faster speed
+                                self.speed_up_factor = 2.5
                                 self.active = True
-                        elif tag.tag_id == 2: # stop
-                                #self.speed_up_factor = 1.7
-				if not self.waited:
-					return
+                        elif tag.tag_id == 3: # Lower speed
+                                self.speed_up_factor = 1.2
+                                self.active = True
+                        elif tag.tag_id == 2: # Normal speed , start
+                                self.speed_up_factor = 1.7
+                                self.active = True
+                                self.waited = False
+                        elif tag.tag_id == 1:
                                 self.active = False
-                                self.waited = False 
-                                self.turn_for_100ms(0.4,0,20)
-                                self.turn_for_100ms(0,0,5)
-			elif tag.tag_id == 1: 
-				self.active = False
-				# self.speed_up_factor = 0
+                                
 		else:
 			print('no tag detected')
 
