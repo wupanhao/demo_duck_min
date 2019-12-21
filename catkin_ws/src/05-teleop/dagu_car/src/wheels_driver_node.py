@@ -15,7 +15,6 @@ class WheelsDriverNode(object):
         self.min_rad            =   self.setupParam("~min_rad", 0.08)
         self.wheel_distance     =   self.setupParam("~wheel_distance", 0.103)
 
-
         # Setup publishers
         # self.driver = DaguWheelsDriver()
         self.driver = CarDriver()
@@ -31,7 +30,6 @@ class WheelsDriverNode(object):
         self.sub_rad_lim = rospy.Subscriber("~radius_limit", BoolStamped, self.cbRadLimit, queue_size=1)
 
         self.params_update = rospy.Timer(rospy.Duration.from_sec(1.0), self.updateParams)
-
 
     def setupParam(self,param_name,default_value):
         value = rospy.get_param(param_name,default_value)

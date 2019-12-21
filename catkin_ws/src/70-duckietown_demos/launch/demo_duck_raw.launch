@@ -31,6 +31,6 @@
 		<arg name="logic_gate_node" default="true"/> <!-- joystick_node need -->
 	</include>
 	<group>
-		<include file="$(find apriltag_ros)/launch/lepi_server.launch" /> 
+		<include file="$(find pi_cam)/launch/usb_camera_node2.launch" /> 
 	</group>
 </launch>

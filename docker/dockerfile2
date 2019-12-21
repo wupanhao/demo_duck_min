@@ -11,5 +11,12 @@ RUN rm -rf /usr/lib/python2.7/dist-packages/enum34-1.1.2.egg-info /usr/lib/pytho
 	pip install ./caches/tensorflow-1.14.0-cp27-none-linux_armv7l.whl ./caches/h5py-2.10.0-cp27-cp27mu-linux_armv7l.whl  keras
 RUN /bin/bash -c "cd /demo_duck/catkin_ws/ && source /opt/ros/kinetic/setup.bash &&  \
      catkin_make_isolated -j4"
+RUN apt install -y python-opencv
+RUN rm catkin_ws/src/05-teleop/pi_cam/src/data_utils.py \
+	catkin_ws/src/05-teleop/pi_cam/src/keras_transfer.py \
+	catkin_ws/src/05-teleop/pi_cam/srv/GetPredictions.srv \
+	catkin_ws/src/05-teleop/pi_driver/srv/GetStrings.srv \
+	catkin_ws/src/70-duckietown_demos/launch/duck_service2.launch	
+RUN git reset HEAD --hard && git pull && cd /demo_duck/catkin_ws/src/05-teleop/pi_cam/src && python keras_transfer.py
 #     rosdep install --from-paths src --ignore-src -y &&  catkin_make_isolated -j4"
 CMD /bin/bash
