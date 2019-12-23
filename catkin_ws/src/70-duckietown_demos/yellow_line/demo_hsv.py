@@ -5,7 +5,7 @@ import argparse
 import cv2
 import time
 import thread
-# from image_rector import ImageRector
+from image_rector import ImageRector
 
 from Car import CarDriver
 car = CarDriver()
@@ -54,8 +54,8 @@ def findMaxCnt(mask):
 	# 膨胀操作，其实先腐蚀再膨胀的效果是开运算，去除噪点
 	# mask = cv2.dilate(mask, None, iterations=2)	
 	_,contours,hierarchy = cv2.findContours(mask,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
-	if len(contours) == 1:
-		return contours[0]
+	# if len(contours) == 1:
+	# 	return contours[0]
 	max_cnt = None	
 	max_area = 0
 	cnts = []
@@ -71,7 +71,7 @@ class DemoCar(object):
 		super(DemoCar, self).__init__()
 		self.image = None
 		self.active = True
-		# self.rector = ImageRector()
+		self.rector = ImageRector()
 		self.car = CarDriver()
 		self.captured = 0
 		self.processed = 0
@@ -80,7 +80,7 @@ class DemoCar(object):
 	# thread.start_new_thread(camera_node.startCaptureCompressed, ())
 	def start_capture(self,rate = 30):
 		self.capture = cv2.VideoCapture(0)
-		self.capture.set(cv2.CAP_PROP_FPS,60)
+		self.capture.set(cv2.CAP_PROP_FPS,30)
 		self.last_update = time.time()
 		print('capture start')
 		self.capture_time = time.time()
@@ -90,13 +90,14 @@ class DemoCar(object):
 			self.captured = self.captured + 1
 			self.last_update = end
 			if self.captured % 150 == 0:
-				print('captured %d frame in %.2f s' % (150,(time.time() - self.capture_time)))
+				# print('captured %d frame in %.2f s' % (150,(time.time() - self.capture_time)))
 				self.capture_time = time.time()
 			# print('capture last update: %.2f ms' % ((end-self.last_update)*1000))	
 			time.sleep(0.004)
 		print('capture end')
 		self.capture.release()
-	def run_single_line(self):
+	def follow_yellow(self):
+		lost_count = 0
 		start = time.time()
 		while self.image is None:
 			print('capture not start')
@@ -115,10 +116,10 @@ class DemoCar(object):
 				print('processed %d frame in %.2f s' % (150,(time.time() - self.process_time)))
 				self.process_time = time.time()			
 			image = self.image
-			# image = self.rector.rect(image)
+			image = self.rector.rect(image)
 			image = cv2.resize(image,(320,240))
-			image = cv2.flip(image,-1)
-			image = image[120:140,:]
+			image_raw = cv2.flip(image,-1)
+			image = image_raw[120:140,:]
 			# cnt_r = detect_cnt(image,[])
 			cnt_y = detect_cnt(image,yellow_hsv)
 			if cnt_y is not None:
@@ -128,14 +129,15 @@ class DemoCar(object):
 				x,y,w,h = cv2.boundingRect(cnt_y)
 				y_center = [x+w/2,y+h/2]
 				cv2.drawContours(image, [cnt_y], -1, (0,255,255), thickness=2)
-				offset = 160 - y_center[0]
+				offset = 70 - y_center[0]
 				bias = offset/160.0
-				self.speed = 0.9*(1-bias)
-				if self.speed < 0.4:
-					self.speed = 0.4
+				self.speed = 1.0*(1-bias)
+				if self.speed < 0.8:
+					self.speed = 0.8
 				left = self.speed*(1-bias)
 				right = self.speed*(1+bias)
 				self.car.setWheelsSpeed(left,right)
+				lost_count = 0
 			else:
 				bias = 0.05*self.random_dir
 				left = self.speed*(1-bias)*0.5
@@ -143,36 +145,169 @@ class DemoCar(object):
 				# self.car.setWheelsSpeed(left,right)
 				self.car.setWheelsSpeed(0,0)
 				self.random_dir = self.random_dir*-1
+				# self.adjust_self()
+				lost_count = lost_count + 1
+				if lost_count > 15:
+					print('yellow line interrupt! at red line')
+					break
+			image_raw[120:140,:] = image[:,:]
 			cv2.imshow("images", image)
+			# cv2.imshow("images", image_raw)
 			# cv2.imshow("images", np.hstack([image, output]))
 			c = cv2.waitKey(2)
 			if c == 27:
 				break
+	def go_ahead_2_seconds(self):
+		self.car.setWheelsSpeed(0.9,0.9)
+		time.sleep(2)
+		self.car.setWheelsSpeed(0,0)
+
+	def go_ahead_and_stop(self):
+		self.car.setWheelsSpeed(0.9,0.9)
+		time.sleep(1.8)
+		self.car.setWheelsSpeed(0,0)
+	def go_ahead_and_detect_yellow(self):
+		cnt_y = None
+		self.car.setWheelsSpeed(0.6,0.6)
+		while cnt_y is None:
+			image = self.image
+			image = self.rector.rect(image)
+			image = cv2.resize(image,(320,240))
+			image_raw = cv2.flip(image,-1)
+			image = image_raw[120:140,:]
+			# cnt_r = detect_cnt(image,[])
+			cnt_y = detect_cnt(image,yellow_hsv)
+			self.car.setWheelsSpeed(0.5,0.5)
+		self.car.setWheelsSpeed(0.3,0.3)
+	def turn_left(self):
+		self.car.setWheelsSpeed(0.8,0.8)
+		time.sleep(2)	
+		self.car.setWheelsSpeed(0,0.8)
+		time.sleep(1)
+		self.car.setWheelsSpeed(0.8,0.8)
+		time.sleep(1)
+		car.setWheelsSpeed(0,0)	
+	def turn_right(self):
+		# self.car.setWheelsSpeed(0.5,0.5)
+		# time.sleep(0.5)	
+		self.car.setWheelsSpeed(0.8,0.3)
+		time.sleep(1.5)
+		car.setWheelsSpeed(0,0)	
+
+	def adjust_self(self):
+		image = self.image
+		image = cv2.resize(image,(320,240))
+		cnt_r = detect_cnt(image,yellow_hsv)
+		if cnt_r is not None:
+			print('red')
+			r_center,r_wh,r_angle = cv2.minAreaRect(cnt_r)
+			print(r_center,r_wh,r_angle)
 
 def test_cam():
+	demo_car = DemoCar()
+	car.setWheelsSpeed(0,0)
 	start = time.time()
+	capture = cv2.VideoCapture(0)
+	rector = ImageRector()
 	while True:
-	# while(state < 2 or lost_count < 25):
 		ret, image = capture.read()
 		if ret == False:
 			break;
 		# 根据阈值找到对应颜色
-		# image = rector.rect(image)
-		# image = cv2.resize(image,(320,240))
+		image = rector.rect(image)
+		image = cv2.resize(image,(320,240))
 		image = cv2.flip(image,-1)	
 		end = time.time()
 		print('last update: %.2f ms' % ((end-start)*1000))	
 		start = end	
-	# capture.release()	
+		cv2.imshow("images", image)
+		# cv2.imshow("images", np.hstack([image, output]))
+		c = cv2.waitKey(2)
+		if c == 27:
+			break
 		 
-if __name__ == '__main__':
+def test_yellow():
 	demo_car = DemoCar()
 	thread.start_new_thread(demo_car.start_capture, ())
 	try:
-		demo_car.run_single_line()
+		demo_car.follow_yellow()
 	except Exception as e:
 		print(e)
 		demo_car.active = False
 		time.sleep(1)
 		car.setWheelsSpeed(0,0)
-	
+
+def test_turn():
+	demo_car = DemoCar()
+	demo_car.car.setWheelsSpeed(0.5,0.5)
+	time.sleep(2.5)	
+	demo_car.car.setWheelsSpeed(0,0.4)
+	time.sleep(2)
+	demo_car.car.setWheelsSpeed(0.4,0.4)
+	time.sleep(2)		
+	car.setWheelsSpeed(0,0)
+
+
+def airplane_to_train_station():
+	demo_car = DemoCar()
+	thread.start_new_thread(demo_car.start_capture, ())
+	try:
+		demo_car.follow_yellow()
+		demo_car.go_ahead_2_seconds()
+		demo_car.go_ahead_and_detect_yellow()
+		demo_car.follow_yellow()
+		demo_car.turn_left()
+		demo_car.go_ahead_and_detect_yellow()
+		demo_car.follow_yellow()
+		demo_car.turn_right()
+		demo_car.go_ahead_and_detect_yellow()
+		demo_car.follow_yellow()
+		demo_car.go_ahead_2_seconds()
+		demo_car.go_ahead_and_detect_yellow()
+		demo_car.follow_yellow()
+		demo_car.go_ahead_2_seconds()
+		demo_car.go_ahead_and_detect_yellow()
+		demo_car.follow_yellow()
+		demo_car.go_ahead_and_stop()
+	except Exception as e:
+		print(e)
+		demo_car.active = False
+		time.sleep(1)
+		car.setWheelsSpeed(0,0)	
+	# demo_car.turn_right()
+
+def train_station_to_airplane():
+	demo_car = DemoCar()
+	thread.start_new_thread(demo_car.start_capture, ())
+	try:
+		demo_car.follow_yellow()
+		demo_car.go_ahead_2_seconds()
+		demo_car.go_ahead_and_detect_yellow()
+		demo_car.follow_yellow()
+		demo_car.go_ahead_2_seconds()
+		demo_car.go_ahead_and_detect_yellow()
+		demo_car.follow_yellow()		
+		demo_car.turn_left()
+		demo_car.go_ahead_and_detect_yellow()
+		demo_car.follow_yellow()
+		demo_car.turn_right()
+		demo_car.go_ahead_and_detect_yellow()
+		demo_car.follow_yellow()
+		demo_car.go_ahead_2_seconds()
+		demo_car.go_ahead_and_detect_yellow()
+		demo_car.follow_yellow()
+		demo_car.go_ahead_and_stop()
+	except Exception as e:
+		print(e)
+		demo_car.active = False
+		time.sleep(1)
+		car.setWheelsSpeed(0,0)	
+	# demo_car.turn_right()
+
+if __name__ == '__main__':
+	start = time.time()
+	airplane_to_train_station()
+	# train_station_to_airplane()
+	end = time.time()
+	print('time cost: %.2f s' % ((end-start)*1))	
+	# test_cam()
