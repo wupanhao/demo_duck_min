@@ -31,7 +31,7 @@
 		<arg name="logic_gate_node" default="true"/> <!-- joystick_node need -->
 	</include>
 	<group>
-		<!--include file="$(find pi_cam)/launch/usb_camera_node2.launch" /--> 
-		<include file="$(find pi_cam)/launch/pi_camera_node.launch" /> 
+		<include file="$(find pi_cam)/launch/usb_camera_node2.launch" /> 
+		<!-- include file="$(find pi_cam)/launch/pi_camera_node.launch" /--> 
 	</group>
 </launch>

@@ -7,7 +7,7 @@ from cv_bridge import CvBridge
 import rospy
 from sensor_msgs.msg import Image,CompressedImage,CameraInfo
 # from sensor_msgs.srv import SetCameraInfo, SetCameraInfoResponse
-
+import cv2
 from camera_utils import load_camera_info_2
 from image_rector import ImageRector
 
@@ -56,12 +56,15 @@ class CameraNode(object):
 			return SetInt32Response(1,1)
 	def PublishRaw(self,cv_image):
 		# Publish raw image
+		cv_image = cv2.flip(cv_image,-1)
 		self.cv_image = cv_image
 		img_msg = self.bridge.cv2_to_imgmsg(cv_image, "bgr8")
 		# time_2 = time.time()
-		img_msg.header.stamp = img_msg.header.stamp
+		img_msg.header.stamp = rospy.Time.now()
+		self.camera_info_msg.header = img_msg.header
 		img_msg.header.frame_id = img_msg.header.frame_id
 		self.pub_raw.publish(img_msg)
+		self.pub_camera_info.publish(self.camera_info_msg)
 		self.image_msg = img_msg
 		if self.rectify:
 			rect_image = self.rector.rect(cv_image)

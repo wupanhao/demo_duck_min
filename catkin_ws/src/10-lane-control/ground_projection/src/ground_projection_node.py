@@ -81,7 +81,7 @@ class GroundProjectionNode(object):
     def estimate_homography_cb(self, req):
         rospy.loginfo("Estimating homography")
         rospy.loginfo("Waiting for raw image")
-        img_msg = rospy.wait_for_message("/" + self.robot_name + "/camera_node/image/raw", Image)
+        img_msg = rospy.wait_for_message("/" + self.robot_name + "/camera_node/image_raw", Image)
         rospy.loginfo("Got raw image")
         try:
             cv_image = self.bridge.imgmsg_to_cv2(img_msg, desired_encoding="bgr8")
